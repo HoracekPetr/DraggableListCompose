@@ -1,6 +1,11 @@
 package com.example.dragshadowcompose.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
@@ -74,8 +79,8 @@ fun <T> DragList(
             dragListItems = dragListItems,
             state = lazyListState,
             onLongPress = {
-                isDragIndicatorVisible = true
                 dragIndicatorY = it.y
+                isDragIndicatorVisible = true
             },
             onDrag = {
                 dragIndicatorY += it
@@ -96,15 +101,14 @@ fun <T> DragList(
             dragListItem = dragListItem,
         )
 
-        AnimatedVisibility(isDragIndicatorVisible) {
-            DragIndicator(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = indicatorVerticalPadding),
-                yPos = dragIndicatorY
-            ) {
-                indicatorContent(currentDragInfo)
-            }
+        DragIndicator(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(horizontal = indicatorVerticalPadding),
+            isVisible = isDragIndicatorVisible,
+            yPos = dragIndicatorY
+        ) {
+            indicatorContent(currentDragInfo)
         }
     }
 }
@@ -179,12 +183,23 @@ fun <T> DraggingList(
 }
 
 @Composable
-fun DragIndicator(modifier: Modifier, yPos: Float, content: @Composable BoxScope.() -> Unit) {
+fun DragIndicator(
+    modifier: Modifier,
+    isVisible: Boolean,
+    yPos: Float,
+    content: @Composable BoxScope.() -> Unit
+) {
     Box(modifier = modifier
         .wrapContentSize()
         .graphicsLayer { translationY = yPos }
     ) {
-        content()
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(200)) + expandIn(tween(200)),
+            exit = fadeOut(tween(200)) + shrinkOut(tween(200))
+        ) {
+            content()
+        }
     }
 }
 
