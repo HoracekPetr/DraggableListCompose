@@ -1,5 +1,6 @@
 package com.example.dragshadowcompose.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
@@ -95,7 +96,7 @@ fun <T> DragList(
             dragListItem = dragListItem,
         )
 
-        if (isDragIndicatorVisible) {
+        AnimatedVisibility(isDragIndicatorVisible) {
             DragIndicator(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
