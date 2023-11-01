@@ -38,6 +38,8 @@ fun AppNavHost() {
                 dragListItems = texts,
                 indicatorContent = { dragInfo ->
                     Card(
+                        modifier = Modifier
+                            .fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -61,8 +63,13 @@ fun AppNavHost() {
                         }
                     }
                 },
-                onNavigate = {
-                    navController.navigate(NavDestination.DETAIL.route.replace("{id}", it))
+                onDragStop = {
+                    navController.navigate(
+                        NavDestination.DETAIL.route.replace(
+                            "{id}",
+                            it.orEmpty()
+                        )
+                    )
                 }
             )
         }
@@ -71,7 +78,7 @@ fun AppNavHost() {
             nullable = true
         })) { backStackEntry ->
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Detail ${backStackEntry.arguments?.getString("id")}")
+                Text(text = "${backStackEntry.arguments?.getString("id")}")
             }
         }
     }

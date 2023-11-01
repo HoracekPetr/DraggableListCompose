@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,9 +32,10 @@ import kotlinx.coroutines.isActive
 @Composable
 fun <T> DragList(
     modifier: Modifier,
-    onNavigate: (String) -> Unit,
+    onDragStop: (info: T?) -> Unit,
     autoScrollThreshold: Dp = 75.dp,
     dragListItems: List<T>,
+    indicatorVerticalPadding: Dp = 20.dp,
     indicatorContent: @Composable (dragInfo: DragInfo<T>) -> Unit,
     dragListItem: @Composable (item: T) -> Unit
 ) {
@@ -45,8 +45,7 @@ fun <T> DragList(
     }
 
     Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
+        modifier = modifier, contentAlignment = Alignment.Center
     ) {
 
         var dragIndicatorY by remember {
@@ -60,11 +59,6 @@ fun <T> DragList(
         var currentDragInfo by remember {
             mutableStateOf(DragInfo<T>())
         }
-
-        var currentHoveredIndex by remember {
-            mutableIntStateOf(0)
-        }
-
 
         LaunchedEffect(key1 = autoScrollSpeed) {
             if (autoScrollSpeed != 0f) {
@@ -87,11 +81,10 @@ fun <T> DragList(
             },
             onDragStop = {
                 isDragIndicatorVisible = false
-                onNavigate(currentHoveredIndex.toString())
+                onDragStop(currentDragInfo.data)
             },
-            onItemHover = { info, index ->
-                currentHoveredIndex = index ?: 0
-                if (info != null) {
+            onItemHover = { info ->
+                info?.let {
                     currentDragInfo = info
                 }
             },
@@ -99,12 +92,14 @@ fun <T> DragList(
                 autoScrollSpeed = it
             },
             autoScrollThreshold = with(LocalDensity.current) { autoScrollThreshold.toPx() },
-            dragListItem = dragListItem
+            dragListItem = dragListItem,
         )
 
         if (isDragIndicatorVisible) {
             DragIndicator(
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = indicatorVerticalPadding),
                 yPos = dragIndicatorY
             ) {
                 indicatorContent(currentDragInfo)
@@ -118,7 +113,7 @@ fun <T> DraggingList(
     modifier: Modifier = Modifier,
     state: LazyListState,
     dragListItems: List<T>,
-    onItemHover: (DragInfo<T>?, Int?) -> Unit,
+    onItemHover: (DragInfo<T>?) -> Unit,
     onLongPress: (Offset) -> Unit,
     onDrag: (Float) -> Unit,
     onDragStop: () -> Unit,
@@ -139,51 +134,42 @@ fun <T> DraggingList(
                     }?.index
 
 
-                detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        onItemHover(
-                            itemAtOffset(it)?.let { index ->
-                                DragInfo(
-                                    data = dragListItems.getOrNull(
-                                        index
-                                    )
+                detectDragGesturesAfterLongPress(onDragStart = {
+                    onItemHover(
+                        itemAtOffset(it)?.let { index ->
+                            DragInfo(
+                                data = dragListItems.getOrNull(
+                                    index
                                 )
-                            },
-                            itemAtOffset(it)
-                        )
-                        onLongPress(it)
-                    },
-                    onDrag = { change, drag ->
-                        onDrag(drag.y)
-                        onItemHover(
-                            itemAtOffset(change.position)?.let { index ->
-                                DragInfo(data = dragListItems.getOrNull(index))
-                            }, itemAtOffset(change.position)
-                        )
+                            )
+                        }
+                    )
+                    onLongPress(it)
+                }, onDrag = { change, drag ->
+                    onDrag(drag.y)
+                    onItemHover(
+                        itemAtOffset(change.position)?.let { index ->
+                            DragInfo(data = dragListItems.getOrNull(index))
+                        }
+                    )
 
-                        val distFromBottom =
-                            state.layoutInfo.viewportSize.height - change.position.y
-                        val distFromTop = change.position.y
+                    val distFromBottom = state.layoutInfo.viewportSize.height - change.position.y
+                    val distFromTop = change.position.y
 
-                        setAutoScrollSpeed(
-                            when {
-                                distFromBottom < autoScrollThreshold -> autoScrollThreshold - distFromBottom
-                                distFromTop < autoScrollThreshold -> -(autoScrollThreshold - distFromTop)
-                                else -> 0f
-                            }
-                        )
-                    },
-                    onDragCancel = {
-                        setAutoScrollSpeed(0f)
-                    },
-                    onDragEnd = {
-                        setAutoScrollSpeed(0f)
-                        onDragStop()
-                    }
-                )
-            },
-        verticalArrangement = Arrangement.spacedBy(itemSpacing),
-        state = state
+                    setAutoScrollSpeed(
+                        when {
+                            distFromBottom < autoScrollThreshold -> autoScrollThreshold - distFromBottom
+                            distFromTop < autoScrollThreshold -> -(autoScrollThreshold - distFromTop)
+                            else -> 0f
+                        }
+                    )
+                }, onDragCancel = {
+                    setAutoScrollSpeed(0f)
+                }, onDragEnd = {
+                    setAutoScrollSpeed(0f)
+                    onDragStop()
+                })
+            }, verticalArrangement = Arrangement.spacedBy(itemSpacing), state = state
     ) {
         items(dragListItems) { item ->
             dragListItem(item)
@@ -193,10 +179,9 @@ fun <T> DraggingList(
 
 @Composable
 fun DragIndicator(modifier: Modifier, yPos: Float, content: @Composable BoxScope.() -> Unit) {
-    Box(
-        modifier = modifier
-            .wrapContentSize()
-            .graphicsLayer { translationY = yPos }
+    Box(modifier = modifier
+        .wrapContentSize()
+        .graphicsLayer { translationY = yPos }
     ) {
         content()
     }

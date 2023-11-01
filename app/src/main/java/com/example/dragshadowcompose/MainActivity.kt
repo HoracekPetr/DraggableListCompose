@@ -17,8 +17,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-
 val texts = List(30) {
     "Item $it"
 }
