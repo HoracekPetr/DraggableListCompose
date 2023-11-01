@@ -131,7 +131,7 @@ fun <T> DraggingList(
     LazyColumn(
         modifier = modifier
             .padding(16.dp)
-            .pointerInput(autoScrollThreshold, setAutoScrollSpeed) {
+            .pointerInput(Unit) {
 
                 fun itemAtOffset(hitPoint: Offset) =
                     state.layoutInfo.visibleItemsInfo.find { itemInfo ->
@@ -176,7 +176,7 @@ fun <T> DraggingList(
                 })
             }, verticalArrangement = Arrangement.spacedBy(itemSpacing), state = state
     ) {
-        items(dragListItems) { item ->
+        items(items = dragListItems) { item ->
             dragListItem(item)
         }
     }

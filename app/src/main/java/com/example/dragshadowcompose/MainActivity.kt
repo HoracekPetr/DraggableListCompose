@@ -17,6 +17,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-val texts = List(30) {
-    "Item $it"
+val users = List(30) {
+    User(
+        id = "userId $it",
+        name = when {
+            it % 2 == 0 -> "Michael"
+            it % 5 == 0 -> "Saul"
+            it % 7 == 0 -> "Walter"
+            it % 13 == 0 -> "Jesse"
+            else -> "Gus"
+        }
+    )
 }
+
+data class User(
+    val id: String,
+    val name: String
+)

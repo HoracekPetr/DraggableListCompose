@@ -35,7 +35,7 @@ fun AppNavHost() {
         composable(NavDestination.DRAG.route) {
             DragList(
                 modifier = Modifier.fillMaxSize(),
-                dragListItems = texts,
+                dragListItems = users,
                 indicatorContent = { dragInfo ->
                     Card(
                         modifier = Modifier
@@ -44,10 +44,13 @@ fun AppNavHost() {
                         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
-                        Text(modifier = Modifier.padding(12.dp), text = dragInfo.data.orEmpty())
+                        Text(
+                            modifier = Modifier.padding(12.dp),
+                            text = dragInfo.data?.name.orEmpty()
+                        )
                     }
                 },
-                dragListItem = { text ->
+                dragListItem = { user ->
                     Card(
                         modifier = Modifier
                             .wrapContentHeight()
@@ -59,7 +62,7 @@ fun AppNavHost() {
                                 .padding(horizontal = 16.dp, vertical = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = text, fontSize = 24.sp)
+                            Text(text = user.name, fontSize = 24.sp)
                         }
                     }
                 },
@@ -67,7 +70,7 @@ fun AppNavHost() {
                     navController.navigate(
                         NavDestination.DETAIL.route.replace(
                             "{id}",
-                            it.orEmpty()
+                            it?.name.orEmpty()
                         )
                     )
                 }
