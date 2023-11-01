@@ -2,10 +2,10 @@ package com.example.dragshadowcompose.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
@@ -195,8 +195,8 @@ fun DragIndicator(
     ) {
         AnimatedVisibility(
             visible = isVisible,
-            enter = fadeIn(tween(200)) + expandIn(tween(200)),
-            exit = fadeOut(tween(200)) + shrinkOut(tween(200))
+            enter = fadeIn(tween(200)) + scaleIn(tween(200)),
+            exit = fadeOut(tween(200)) + scaleOut(tween(200))
         ) {
             content()
         }
