@@ -33,8 +33,9 @@ import kotlinx.coroutines.isActive
 @Composable
 fun <T> DragList(
     modifier: Modifier,
-    dragListItems: List<T>,
     onNavigate: (String) -> Unit,
+    autoScrollThreshold: Dp = 75.dp,
+    dragListItems: List<T>,
     indicatorContent: @Composable (dragInfo: DragInfo<T>) -> Unit,
     dragListItem: @Composable (item: T) -> Unit
 ) {
@@ -97,7 +98,7 @@ fun <T> DragList(
             setAutoScrollSpeed = {
                 autoScrollSpeed = it
             },
-            autoScrollThreshold = with(LocalDensity.current) { 100.dp.toPx() },
+            autoScrollThreshold = with(LocalDensity.current) { autoScrollThreshold.toPx() },
             dragListItem = dragListItem
         )
 
