@@ -5,20 +5,12 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,37 +22,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.round
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.toIntRect
-import androidx.compose.ui.unit.toOffset
-import com.example.dragshadowcompose.texts
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 @Composable
-fun DragList(
-    onNavigate: (String) -> Unit
+fun <T> DragList(
+    modifier: Modifier,
+    dragListItems: List<T>,
+    onNavigate: (String) -> Unit,
+    indicatorContent: @Composable (dragInfo: DragInfo<T>) -> Unit,
+    dragListItem: @Composable (item: T) -> Unit
 ) {
-
     val lazyListState = rememberLazyListState()
     var autoScrollSpeed by remember {
         mutableFloatStateOf(0f)
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
 
@@ -72,8 +56,8 @@ fun DragList(
             mutableStateOf(false)
         }
 
-        var currentDraggedName by remember {
-            mutableStateOf("")
+        var currentDragInfo by remember {
+            mutableStateOf(DragInfo<T>())
         }
 
         var currentHoveredIndex by remember {
@@ -83,7 +67,6 @@ fun DragList(
 
         LaunchedEffect(key1 = autoScrollSpeed) {
             if (autoScrollSpeed != 0f) {
-                println("Scrolling")
                 while (isActive) {
                     lazyListState.scrollBy(autoScrollSpeed)
                     delay(10)
@@ -92,7 +75,7 @@ fun DragList(
         }
 
         DraggingList(
-            texts = texts,
+            dragListItems = dragListItems,
             state = lazyListState,
             onLongPress = {
                 isDragIndicatorVisible = true
@@ -105,14 +88,17 @@ fun DragList(
                 isDragIndicatorVisible = false
                 onNavigate(currentHoveredIndex.toString())
             },
-            onItemHover = { text, index ->
+            onItemHover = { info, index ->
                 currentHoveredIndex = index ?: 0
-                currentDraggedName = text.orEmpty()
+                if (info != null) {
+                    currentDragInfo = info
+                }
             },
             setAutoScrollSpeed = {
                 autoScrollSpeed = it
             },
             autoScrollThreshold = with(LocalDensity.current) { 100.dp.toPx() },
+            dragListItem = dragListItem
         )
 
         if (isDragIndicatorVisible) {
@@ -120,30 +106,25 @@ fun DragList(
                 modifier = Modifier.align(Alignment.TopCenter),
                 yPos = dragIndicatorY
             ) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Text(modifier = Modifier.padding(12.dp), text = currentDraggedName)
-                }
+                indicatorContent(currentDragInfo)
             }
         }
     }
 }
 
 @Composable
-fun DraggingList(
+fun <T> DraggingList(
     modifier: Modifier = Modifier,
     state: LazyListState,
-    texts: List<String>,
-    onItemHover: (String?, Int?) -> Unit,
+    dragListItems: List<T>,
+    onItemHover: (DragInfo<T>?, Int?) -> Unit,
     onLongPress: (Offset) -> Unit,
     onDrag: (Float) -> Unit,
     onDragStop: () -> Unit,
     itemSpacing: Dp = 12.dp,
     setAutoScrollSpeed: (Float) -> Unit = { },
-    autoScrollThreshold: Float
+    autoScrollThreshold: Float,
+    dragListItem: @Composable (item: T) -> Unit
 ) {
 
     LazyColumn(
@@ -160,7 +141,13 @@ fun DraggingList(
                 detectDragGesturesAfterLongPress(
                     onDragStart = {
                         onItemHover(
-                            itemAtOffset(it)?.let { index -> texts.getOrNull(index) },
+                            itemAtOffset(it)?.let { index ->
+                                DragInfo(
+                                    data = dragListItems.getOrNull(
+                                        index
+                                    )
+                                )
+                            },
                             itemAtOffset(it)
                         )
                         onLongPress(it)
@@ -169,9 +156,7 @@ fun DraggingList(
                         onDrag(drag.y)
                         onItemHover(
                             itemAtOffset(change.position)?.let { index ->
-                                texts.getOrNull(
-                                    index
-                                )
+                                DragInfo(data = dragListItems.getOrNull(index))
                             }, itemAtOffset(change.position)
                         )
 
@@ -199,21 +184,8 @@ fun DraggingList(
         verticalArrangement = Arrangement.spacedBy(itemSpacing),
         state = state
     ) {
-        items(texts) { text ->
-            Card(
-                modifier = modifier
-                    .wrapContentHeight()
-                    .fillMaxWidth()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .wrapContentSize()
-                        .padding(horizontal = 16.dp, vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = text, fontSize = 24.sp)
-                }
-            }
+        items(dragListItems) { item ->
+            dragListItem(item)
         }
     }
 }
@@ -228,3 +200,7 @@ fun DragIndicator(modifier: Modifier, yPos: Float, content: @Composable BoxScope
         content()
     }
 }
+
+data class DragInfo<T>(
+    val data: T? = null
+)
